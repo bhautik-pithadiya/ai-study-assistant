@@ -88,7 +88,7 @@ async def upload_image(file: UploadFile = File(...)):
 
 # === Endpoint 3: Answer MCQ ===
 @app.post("/answer_mcq/")
-async def answer_mcq(mcq_text: str = Form(...)):
+async def answer_mcq(mcq_text: str):
     try:
         answer_chain = answer_mcq_template | llm | parser
         final_answer = answer_chain.invoke({"mcq_text": mcq_text})
