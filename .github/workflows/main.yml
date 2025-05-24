@@ -1,27 +1,29 @@
 name: Build-and-Deploy
 
-permissions:          # 👈 tell the runner what the GITHUB_TOKEN may do
-  contents: read
-  packages: write     #
+# ────────── GitHub-token access ──────────
+permissions:
+  contents: read     # pull source
+  packages: write    # push to GHCR
 
+# ────────── Triggers ──────────
 on:
   push:
-    branches: [ main ]          # run on every push to main
-  workflow_dispatch:            # allow manual runs from the Actions tab
+    branches: [ main ]     # run on every push to main
+  workflow_dispatch:       # manual run button
 
+# ────────── Re-usable labels ──────────
 env:
-  IMAGE: ghcr.io/${{ github.repository }}   # container registry path
-  TAG: ${{ github.sha }}                    # image tag = commit hash
+  IMAGE: ghcr.io/${{ github.repository }}   # e.g. ghcr.io/bhautik-pithadiya/cheating-app
+  TAG:   ${{ github.sha }}                  # image tag = commit hash
 
+# ═══════════════════════════════════════════════════════════════
 jobs:
-# ───────────────────────────────────────────────────────────────
+# ─────────────────────── 1. Build & publish ────────────────────
   build:
-# ───────────────────────────────────────────────────────────────
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # Build & push the Docker image to GitHub Container Registry
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -32,46 +34,44 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & Push
+      - name: Build & Push image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: ${{ env.IMAGE }}:${{ env.TAG }}
 
-# ───────────────────────────────────────────────────────────────
+# ─────────────────────── 2. Deploy to GCP VM ───────────────────
   deploy:
-# ───────────────────────────────────────────────────────────────
-    needs: build               # wait until image is published
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Add the SSH private key stored in repository secrets
-      - name: Start SSH-Agent
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
         with:
-          ssh-private-key: ${{ secrets.SSH_KEY }}
-
-      # 2️⃣ Run remote commands that pull the new image and restart the stack
-      - name: Deploy on server via SSH
-        uses: appleboy/ssh-action@v1.0.0           # community SSH helper
-        with:
-          host:     ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
+          host:     ${{ secrets.SSH_HOST }}     # e.g. 35.225.50.125
+          username: ${{ secrets.SSH_USER }}     # the user tied to the VM-side public key
+          key:      ${{ secrets.SSH_KEY }}      # **private** key text
           port:     ${{ secrets.SSH_PORT || 22 }}
+
           script: |
             set -e
-            echo "Pulling newest image..."
-            docker login ghcr.io -u ${{ secrets.REGISTRY_USER }} -p ${{ secrets.REGISTRY_PAT }}
-            docker pull $IMAGE:$TAG
+            IMAGE="${{ env.IMAGE }}"
+            TAG="${{ env.TAG }}"
 
-            echo "Recreating container..."
+            echo "🔐  Logging in to GHCR…"
+            docker login ghcr.io \
+              -u "${{ secrets.REGISTRY_USER }}" \
+              -p "${{ secrets.REGISTRY_PAT }}"
+
+            echo "⬇️  Pulling ${IMAGE}:${TAG}…"
+            docker pull "${IMAGE}:${TAG}"
+
+            echo "♻️  Recreating container…"
             docker stop cheating-app || true
             docker rm   cheating-app || true
-            # If you already have a docker-compose.yml on the server, use it instead:
-            # docker compose up -d --pull always
-            docker run -d --name cheating-app \
-                        -p 8000:8000 \
-                        $IMAGE:$TAG
+            docker run -d --name cheating-app -p 8000:8000 \
+                       "${IMAGE}:${TAG}"
 
             echo "✅ Deploy complete"
