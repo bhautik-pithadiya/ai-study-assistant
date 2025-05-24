@@ -1,5 +1,9 @@
 name: Build-and-Deploy
 
+permissions:          # 👈 tell the runner what the GITHUB_TOKEN may do
+  contents: read
+  packages: write     #
+
 on:
   push:
     branches: [ main ]          # run on every push to main
