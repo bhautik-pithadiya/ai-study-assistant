@@ -55,10 +55,16 @@ jobs:
           key:      ${{ secrets.SSH_KEY }}      # **private** key text
           port:     ${{ secrets.SSH_PORT || 22 }}
 
+          envs: SERVICE_ACCOUNT_JSON_B64,GOOGLE_API_KEY
+
           script: |
             set -e
             IMAGE="${{ env.IMAGE }}"
             TAG="${{ env.TAG }}"
+            
+            echo "🔒  Re-creating credential files..."
+            echo "$SERVICE_ACCOUNT_JSON_B64" | base64 -d > /srv/cheating-app/creds/service-account.json
+            echo "GOOGLE_API_KEY=${GOOGLE_API_KEY}" > /srv/cheating-app/creds/app.env
 
             echo "🔐  Logging in to GHCR…"
             docker login ghcr.io \
@@ -72,6 +78,9 @@ jobs:
             docker stop cheating-app || true
             docker rm   cheating-app || true
             docker run -d --name cheating-app -p 8000:8000 \
-                       "${IMAGE}:${TAG}"
+            --env-file /srv/cheating-app/creds/app.env \
+            -v /srv/cheating-app/creds:/app/creds:ro \
+            "$IMAGE:$TAG"
+
 
             echo "✅ Deploy complete"
