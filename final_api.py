@@ -16,10 +16,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv(
-    "GOOGLE_APPLICATION_CREDENTIALS",
-    "/app/creds/service-account.json"         # default in the container
-)
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = './cheating-app-460706-2c650aed4e38.json'
 
 
 
