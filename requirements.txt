@@ -1,10 +1,6 @@
-fastapi
-uvicorn
-uvicorn[standard]
-python-multipart
-pydantic
-google-cloud-vision
-google-generativeai
-langchain
-langchain-google-genai
-python-dotenv
+fastapi==0.109.2
+uvicorn==0.27.1
+python-multipart==0.0.9
+google-generativeai==0.3.2
+python-dotenv==1.0.1
+pydantic==2.6.1
