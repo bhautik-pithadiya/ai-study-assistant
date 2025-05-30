@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.endpoints import router
+from app.api.v1.endpoints.chatbot_endpoint import router as chatbot_router
+from app.config.settings import settings
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Academic Question Answering API",
-    description="API for answering academic questions using Gemini's multimodal capabilities",
+    title=settings.PROJECT_NAME,
     version="1.0.0"
 )
 
@@ -19,7 +19,7 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(router, prefix="/api/v1")
+app.include_router(chatbot_router, prefix=settings.API_V1_STR)
 
 if __name__ == "__main__":
     import uvicorn
