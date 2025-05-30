@@ -2,10 +2,14 @@ from fastapi import APIRouter, File, UploadFile, HTTPException, Form
 from app.models.schemas import AnswerResponse
 from app.services.gemini_service import GeminiService
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/multimodal",
+    tags=["multimodal"],
+    responses={404: {"description": "Not found"}},
+)
 gemini_service = GeminiService()
 
-@router.post("/answer/", 
+@router.post("/multimodal/", 
     response_model=AnswerResponse,
     summary="Answer questions from images with optional text context",
     description="Processes an image containing a question and optional text context to provide an answer using Gemini's multimodal capabilities"
