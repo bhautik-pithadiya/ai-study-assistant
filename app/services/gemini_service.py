@@ -1,6 +1,6 @@
 import base64
 import google.generativeai as genai
-from core.config import API_KEY, MODEL_NAME, GENERATION_CONFIG, SYSTEM_PROMPT
+from app.core.config import API_KEY, MODEL_NAME, GENERATION_CONFIG, SYSTEM_PROMPT
 
 class GeminiService:
     def __init__(self):

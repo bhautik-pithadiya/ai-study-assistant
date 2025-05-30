@@ -1,6 +1,6 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Form
-from models.schemas import AnswerResponse
-from services.gemini_service import GeminiService
+from app.models.schemas import AnswerResponse
+from app.services.gemini_service import GeminiService
 
 router = APIRouter()
 gemini_service = GeminiService()
