@@ -1,12 +1,12 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Form
 from app.models.schemas import AnswerResponse
 from app.services.gemini_service import GeminiService
+import logging
 
-router = APIRouter(
-    prefix="/multimodal",
-    tags=["multimodal"],
-    responses={404: {"description": "Not found"}},
-)
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+logger.info("Initializing GeminiService")
 gemini_service = GeminiService()
 
 @router.post("/multimodal/", 
@@ -31,20 +31,25 @@ async def answer_question(
     Raises:
         HTTPException: If there's an error processing the request
     """
+    logger.info(f"Received multimodal request for file: {file.filename}")
     try:
         # Read the image file
+        logger.debug("Reading image file content")
         contents = await file.read()
         
         # Generate answer using Gemini service
+        logger.info("Generating answer using Gemini service")
         answer = await gemini_service.generate_answer(
             image_content=contents,
             image_mime_type=file.content_type,
             text=text
         )
+        logger.info("Successfully generated answer")
         
         return AnswerResponse(answer=answer)
 
     except Exception as e:
+        logger.error(f"Error processing multimodal request: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Error processing request: {str(e)}"

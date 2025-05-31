@@ -11,9 +11,8 @@ class MultimodalRequest(BaseModel):
 class LiveTranscribeRequest(BaseModel):
     """Request model for live transcribe endpoint"""
     audio_content: bytes
-    audio_mime_type: str
 
-class LiveTranscribeResponse(BaseModel):
+class TranscribeResponse(BaseModel):
     """Response model for live transcribe endpoint"""
     transcript: str
     confidence: float
