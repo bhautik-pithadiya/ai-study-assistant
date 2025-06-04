@@ -9,8 +9,9 @@ class MultimodalRequest(BaseModel):
     text: str = "" 
 
 class LiveTranscribeRequest(BaseModel):
-    """Request model for live transcribe endpoint"""
-    audio_content: bytes
+    audio_content: str
+    audio_mime_type: str = "audio/webm;codecs=opus"
+
 
 class TranscribeResponse(BaseModel):
     """Response model for live transcribe endpoint"""
