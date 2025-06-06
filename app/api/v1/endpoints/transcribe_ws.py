@@ -1,13 +1,12 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import asyncio
-import queue
 import logging
-from typing import Generator
+from typing import AsyncGenerator
 
-from app.services.transcribe_service import TranscribeService  # Import your service
+from app.services.transcribe_service import TranscribeService
 
 router = APIRouter()
-transcribe_service = TranscribeService()  # Instantiate the service
+transcribe_service = TranscribeService()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -16,42 +15,38 @@ async def stream_transcribe(websocket: WebSocket):
     await websocket.accept()
     logger.info("WebSocket connection accepted")
 
-    request_sync_queue = queue.Queue()
+    request_async_queue = asyncio.Queue()
 
-    # PCM chunk feed task
-    async def feed_request_queue(websocket: WebSocket, sync_queue: queue.Queue):
+    async def feed_request_queue(websocket: WebSocket, async_queue: asyncio.Queue):
         try:
             while True:
                 chunk = await websocket.receive_bytes()
                 if chunk:
-                    sync_queue.put(chunk)
+                    await async_queue.put(chunk)
         except WebSocketDisconnect:
             logger.info("WebSocket disconnected")
-            sync_queue.put(None)
+            await async_queue.put(None)
         except Exception as e:
             logger.error(f"WebSocket receive error: {e}")
-            sync_queue.put(None)
+            await async_queue.put(None)
 
-    # Sync generator for audio chunks
-    def sync_request_generator(sync_queue: queue.Queue) -> Generator:
+    async def async_request_generator(async_queue: asyncio.Queue) -> AsyncGenerator:
         while True:
-            chunk = sync_queue.get()
+            chunk = await async_queue.get()
             if chunk is None:
                 break
             yield chunk
 
-    # Start feed task and ASR task
-    feed_task = asyncio.create_task(feed_request_queue(websocket, request_sync_queue))
+    feed_task = asyncio.create_task(feed_request_queue(websocket, request_async_queue))
     asr_task = asyncio.create_task(
-        _asr_loop(sync_request_generator(request_sync_queue), websocket)
+        _asr_loop(async_request_generator(request_async_queue), websocket)
     )
 
     await asyncio.gather(feed_task, asr_task)
 
-async def _asr_loop(generator: Generator, websocket: WebSocket):
+async def _asr_loop(generator: AsyncGenerator, websocket: WebSocket):
     try:
-        for chunk in generator:
-            # If chunk is a string (Latin-1 encoded), convert to bytes
+        async for chunk in generator:
             if isinstance(chunk, str):
                 audio_bytes = bytes(chunk, 'latin1')
             else:
@@ -60,7 +55,7 @@ async def _asr_loop(generator: Generator, websocket: WebSocket):
             payload = {
                 "transcript": transcript,
                 "confidence": confidence,
-                "is_final": True  # Since the service is not streaming, always final
+                "is_final": True
             }
             await websocket.send_json(payload)
     except Exception as e:
